@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="initial-scale=1">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="/css/responsive.dataTables.min.css">
+    <link rel="stylesheet" href="/css/main.min.css">
+    <link rel="stylesheet" href="/font/bootstrap-icons.css">
+</head>
+
+<body>
+    <div class="container-fluid p-3 text-white text-center bg-navy">
+        <i class="bi bi-activity" style="font-size: 4em"></i>
+        <h1>Frequencier</h1>
+    </div>
+    <div class="container-fluid mt-2">
+        <div class="row">
+            <div class="col-md-12">
+                <label for="frequencies" class="col-form-label" style="font-weight: bold;">Frequencies</label>
+            </div>
+            <div class="col-md-12">
+                <input class="form-control frequency-input" type="text" id="frequencies"
+                    placeholder="Ex:. 220,400,440,1500" aria-label="Ex:. 220,400,440,1500" onkeyup="enablePlay(event);">
+            </div>
+        </div>
+        <div class="row">
+            <div id="buttons" class="col-md-12 mt-3 mb-3 text-center">
+                <button id="play" type="button" class="btn btn-success" onclick="play();">Play</button>
+                <button id="stop" type="button" class="btn btn-danger" onclick="stop();removeSelected();">Stop</button>
+            </div>
+        </div>
+        <div class="row mb-5">
+            <table id="frequenciesTable" class="display nowrap" style="width:100%;">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Name</th>
+                        <th>Frequency</th>
+                        <th>Author</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+        <div class="footer">
+            <p>© 2024 Frequencier, Inc. All rights reserved.</p>
+        </div>
+    </div>
+    <script src="/js/jquery-3.5.1.min.js"></script>
+    <script src="/js/jquery.dataTables.min.js"></script>
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/dataTables.keyTable.min.js"></script>
+    <script src="/js/dataTables.responsive.min.js"></script>
+    <script src="/js/frequencies.min.js"></script>
+    <script src="/js/main.min.js"></script>
+</body>
+
+</html>

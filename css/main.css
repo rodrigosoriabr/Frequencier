@@ -1,0 +1,73 @@
+.bg-navy {
+    background-color: #064789;
+    color: #EBF2FA;
+}
+
+.btn-blue {
+    background-color: #427AA1;
+}
+
+.frequency-input {
+    border: 1px solid #aaa;
+    border-radius: 3px;
+    padding: 5px;
+    background-color: transparent;
+    margin-left: 3px;
+}
+
+.footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    background-color: #064789;
+    color: #EBF2FA;
+    text-align: center;
+}
+
+p {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+.gold {
+    color: goldenrod;
+}
+
+#frequenciesTable_paginate {
+    margin-bottom: 20px;
+}
+
+@media screen and (max-width: 425px) {
+    .dataTables_wrapper .dataTables_filter input {
+        display: block;
+        width: 100%;
+    }
+
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter {
+        float: none;
+    }
+
+    .dataTables_length {
+        display: none;
+    }
+
+    .dataTables_filter {
+        margin-top: 0;
+        text-align: left !important;
+        width: 100%;
+        display: grid;
+        margin-bottom: 5px;
+    }
+
+    .dataTables_filter label {
+        font-weight: bold;
+        font-size: inherit;
+        margin-top: -5px;
+    }
+
+    #buttons {
+        margin-bottom: 0 !important;
+    }
+}
