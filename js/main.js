@@ -77,6 +77,8 @@ $(document).ready(function () {
             return $('i', td).hasClass('bi-star-fill') ? '1' : '0';
         });
     }
+
+    document.getElementById('currentYear').textContent = GetFullYear();
 });
 
 function removeSelected() {
@@ -128,4 +130,8 @@ function getFavouriteItemsJSON() {
     }
 
     return JSON.parse(item);
+}
+
+function GetFullYear() {
+    return new Date().getFullYear();
 }
