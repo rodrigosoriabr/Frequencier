@@ -347,7 +347,7 @@ function formatClock(seconds) {
 
 function renderProgress(elapsed, timerSeconds) {
   $("#elapsed").textContent = formatClock(elapsed);
-  $("#remaining").textContent = timerSeconds ? `−${formatClock(timerSeconds - elapsed)}` : "no timer";
+  $("#remaining").textContent = timerSeconds ? `−${formatClock(timerSeconds - elapsed)}` : "∞";
   const fraction = timerSeconds ? elapsed / timerSeconds : 0;
   $("#progressFill").style.transform = `scaleX(${Math.min(1, fraction)})`;
 }
@@ -392,7 +392,7 @@ function renderNowPlaying() {
 
   if (!state.playing) {
     $("#elapsed").textContent = "0:00";
-    $("#remaining").textContent = state.settings.timerMinutes ? `${state.settings.timerMinutes} min` : "no timer";
+    $("#remaining").textContent = state.settings.timerMinutes ? formatClock(state.settings.timerMinutes * 60) : "∞";
     $("#progressFill").style.transform = "scaleX(0)";
   }
 }

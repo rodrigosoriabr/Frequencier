@@ -8,7 +8,7 @@ Play frequency sets in the browser: 439 Rife-style programmes, your own frequenc
 
 - **Library** of 439 sets with instant search (by name or by Hz), filters by source, and ★ favourites.
 - **Two play modes**: all frequencies together, or one at a time (30 s – 5 min each, looping) the way Rife programmes are usually run.
-- **Session timer** that fades out on its own (5 min – 1 h, or never).
+- **Session timer** that fades out on its own (5 min – 12 h, or infinite).
 - **Waveform** (sine, triangle, square, sawtooth) and **binaural beat** offset (delta, theta, Schumann, alpha — use headphones).
 - **Your own frequencies**: type `396, 528, 852`, play, save as a preset, or share a link (`#f=396,528,852`, `#set=Abdominal Pain`).
 - **Ambience** to soften sessions, all synthesised in the browser (no audio files): rain, ocean waves, wind or a deep drone, with its own level; **room echo** (reverb) on the tones; and **breathing**, a slow 10 s swell that paces relaxed breathing.
