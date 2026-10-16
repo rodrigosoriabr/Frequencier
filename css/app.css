@@ -234,6 +234,17 @@ body[data-playing="true"] .eyebrow { color: var(--accent-2); }
   50% { box-shadow: 0 0 0 14px transparent; }
 }
 
+/* ---------- Ambience ---------- */
+
+.ambience { display: grid; gap: 6px; }
+.ambience .chips { margin: 0; padding: 0; flex-wrap: wrap; overflow: visible; }
+.chip[aria-checked="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+
+.toggle { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--muted); cursor: pointer; }
+.toggle.wide { grid-column: 1 / -1; }
+.toggle input { width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--accent); flex: none; }
+.toggle strong { color: var(--text); }
+
 /* ---------- Settings ---------- */
 
 .more { border-top: 1px solid var(--border); }
@@ -266,7 +277,7 @@ body[data-playing="true"] .eyebrow { color: var(--accent-2); }
 .field.wide { grid-column: 1 / -1; }
 .label { color: var(--muted); font-size: 12px; font-weight: 600; display: flex; justify-content: space-between; }
 
-select, input:not([type="range"]) {
+select, input:where(:not([type="range"], [type="checkbox"])) {
   width: 100%;
   min-width: 0;
   height: 40px;

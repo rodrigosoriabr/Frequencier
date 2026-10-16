@@ -54,6 +54,11 @@
         </button>
       </div>
 
+      <div class="ambience">
+        <span class="label" id="ambienceLabel">Ambience</span>
+        <div class="chips" id="ambienceChips" role="radiogroup" aria-labelledby="ambienceLabel"></div>
+      </div>
+
       <details class="more" id="settingsPanel">
         <summary>Session settings</summary>
       <div class="settings">
@@ -107,6 +112,18 @@
         <label class="field wide">
           <span class="label">Volume <output id="volumeOutput">35%</output></span>
           <input type="range" id="volumeRange" min="0" max="100" value="35">
+        </label>
+        <label class="field">
+          <span class="label">Ambience level <output id="ambienceOutput">50%</output></span>
+          <input type="range" id="ambienceRange" min="0" max="100" value="50">
+        </label>
+        <label class="field">
+          <span class="label">Room echo <output id="reverbOutput">25%</output></span>
+          <input type="range" id="reverbRange" min="0" max="100" value="25">
+        </label>
+        <label class="toggle wide">
+          <input type="checkbox" id="breathingToggle">
+          <span><strong>Breathing</strong> · tones swell and fade every 10 s to pace slow breathing</span>
         </label>
       </div>
 

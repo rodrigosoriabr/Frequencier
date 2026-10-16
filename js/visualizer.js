@@ -33,7 +33,7 @@ export function startVisualizer(canvas, engine) {
       // Show about six cycles of the lowest tone so both 95 Hz and 10 kHz read as waves.
       const lowest = Math.min(...(engine.currentFrequencies || [440]));
       const visible = Math.round(Math.min(samples.length, Math.max(48, (engine.context.sampleRate * 6) / lowest)));
-      const gain = 0.9 / Math.max(engine.volume, 0.05);
+      const gain = 0.9; // the analyser taps the tone bus, before the volume control
 
       context.strokeStyle = style.getPropertyValue("--wave").trim();
       context.lineWidth = 2 * (window.devicePixelRatio || 1);

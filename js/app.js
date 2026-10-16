@@ -3,7 +3,7 @@
  * No framework: the list is re-rendered from state whenever the filter or search changes.
  */
 
-import { ToneEngine } from "./audio.js";
+import { AMBIENCES, ToneEngine } from "./audio.js";
 import { startVisualizer } from "./visualizer.js";
 import {
   SOURCES,
@@ -41,6 +41,10 @@ const state = {
     waveform: "sine",
     binaural: 0,
     volume: 35,
+    ambience: "off",
+    ambienceLevel: 50,
+    reverb: 25,
+    breathing: false,
     theme: null,
     ...readSettings(),
   },
@@ -77,10 +81,29 @@ function applySettingsToControls() {
   $("#volumeRange").value = String(settings.volume);
   $("#volumeOutput").textContent = `${settings.volume}%`;
   if (settings.theme) document.documentElement.dataset.theme = settings.theme;
+  $("#ambienceRange").value = String(settings.ambienceLevel);
+  $("#ambienceOutput").textContent = `${settings.ambienceLevel}%`;
+  $("#reverbRange").value = String(settings.reverb);
+  $("#reverbOutput").textContent = `${settings.reverb}%`;
+  $("#breathingToggle").checked = settings.breathing;
+  renderAmbienceChips();
 
   engine.setVolume(volumeToGain(settings.volume));
   engine.waveform = settings.waveform;
   engine.binauralOffset = Number(settings.binaural);
+  engine.ambience = settings.ambience;
+  engine.ambienceLevel = volumeToGain(settings.ambienceLevel);
+  engine.reverb = settings.reverb / 100;
+  engine.breathing = settings.breathing;
+}
+
+function renderAmbienceChips() {
+  $("#ambienceChips").innerHTML = Object.entries(AMBIENCES)
+    .map(
+      ([value, label]) =>
+        `<button type="button" class="chip" role="radio" data-ambience="${value}" aria-checked="${state.settings.ambience === value}">${label}</button>`,
+    )
+    .join("");
 }
 
 /** Perceived loudness is logarithmic, so square the slider value for a natural feel. */
@@ -623,6 +646,28 @@ function bindEvents() {
   onSetting("#volumeRange", "volume", Number, () => {
     $("#volumeOutput").textContent = `${state.settings.volume}%`;
     engine.setVolume(volumeToGain(state.settings.volume));
+  });
+
+  $("#ambienceChips").addEventListener("click", (event) => {
+    const chip = event.target.closest("[data-ambience]");
+    if (!chip) return;
+    state.settings.ambience = chip.dataset.ambience;
+    writeSettings();
+    renderAmbienceChips();
+    engine.setAmbience(state.settings.ambience);
+  });
+  onSetting("#ambienceRange", "ambienceLevel", Number, () => {
+    $("#ambienceOutput").textContent = `${state.settings.ambienceLevel}%`;
+    engine.setAmbienceLevel(volumeToGain(state.settings.ambienceLevel));
+  });
+  onSetting("#reverbRange", "reverb", Number, () => {
+    $("#reverbOutput").textContent = `${state.settings.reverb}%`;
+    engine.setReverb(state.settings.reverb / 100);
+  });
+  $("#breathingToggle").addEventListener("change", (event) => {
+    state.settings.breathing = event.target.checked;
+    writeSettings();
+    engine.setBreathing(state.settings.breathing);
   });
 
   $("#themeButton").addEventListener("click", toggleTheme);

@@ -11,6 +11,7 @@ Play frequency sets in the browser: 439 Rife-style programmes, your own frequenc
 - **Session timer** that fades out on its own (5 min – 1 h, or never).
 - **Waveform** (sine, triangle, square, sawtooth) and **binaural beat** offset (delta, theta, Schumann, alpha — use headphones).
 - **Your own frequencies**: type `396, 528, 852`, play, save as a preset, or share a link (`#f=396,528,852`, `#set=Abdominal Pain`).
+- **Ambience** to soften sessions, all synthesised in the browser (no audio files): rain, ocean waves, wind or a deep drone, with its own level; **room echo** (reverb) on the tones; and **breathing**, a slow 10 s swell that paces relaxed breathing.
 - **Live oscilloscope**, lock-screen controls (Media Session), screen kept awake during a session, light and dark themes, keyboard shortcuts (`Space`, `↑ ↓`, `← →`, `/`, `F`).
 - **Installable PWA** that works offline.
 
@@ -32,7 +33,7 @@ python3 -m http.server 8000
 | `index.html` | Page structure |
 | `css/app.css` | All styles; colour tokens at the top, dark and light themes |
 | `js/app.js` | UI state, list rendering, player logic, keyboard, sharing |
-| `js/audio.js` | Tone engine: one AudioContext, gain-scaled voices, click-free fades, limiter |
+| `js/audio.js` | Tone engine: one AudioContext, gain-scaled voices, click-free fades, limiter, reverb, breathing LFO, synthesised ambience beds |
 | `js/library.js` | Database loading, favourites/presets storage, frequency parsing |
 | `js/visualizer.js` | Oscilloscope canvas |
 | `sw.js` | Offline cache (network first) |
