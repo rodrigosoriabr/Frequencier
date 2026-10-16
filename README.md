@@ -35,7 +35,8 @@ python3 -m http.server 8000
 | `js/app.js` | UI state, list rendering, player logic, keyboard, sharing |
 | `js/audio.js` | Tone engine: one AudioContext, gain-scaled voices, click-free fades, limiter, reverb, breathing LFO, synthesised ambience beds |
 | `js/library.js` | Database loading, favourites/presets storage, frequency parsing |
-| `js/visualizer.js` | Oscilloscope canvas |
+| `js/player.js` | Background-safe playback: renders a seamless loop to WAV offline and plays it through `<audio>` (keeps playing on a locked iPhone) |
+| `js/visualizer.js` | Oscilloscope, computed from what is playing |
 | `sw.js` | Offline cache (network first) |
 | `database/frequencies.json` | The library: `{ name, frequencies[], source }` |
 
@@ -50,6 +51,8 @@ Append to `database/frequencies.json`:
 Sources: `CAFL` (Consolidated Annotated Frequency List), `XTRA`, `KHZ`, `BIO`, `VEGA`, `CUST`, `PROV`, `ODD` — descriptions live in `js/library.js`.
 
 ## Notes on audio
+
+- Playback is a pre-rendered loop played by an `<audio>` element, because iOS suspends live Web Audio when the screen locks. Loops are 20 s (100 s if a frequency has hundredths of a Hz) and every tone and modulation completes whole cycles in that time, so the loop point is seamless. Changing a setting re-renders the loop in about half a second.
 
 - Each voice is scaled by `1/n` and the master runs through a compressor, so large chords don't clip.
 - Frequencies above the device's Nyquist limit (usually 22–24 kHz) are skipped with a notice. Tones under 20 Hz or above ~16 kHz may be inaudible on phone and laptop speakers.

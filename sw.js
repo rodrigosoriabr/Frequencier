@@ -3,7 +3,7 @@
  * the cache is only used when the network is unavailable.
  */
 
-const CACHE = "frequencier-v4";
+const CACHE = "frequencier-v5";
 const FILES = [
   "./",
   "index.html",
@@ -12,6 +12,7 @@ const FILES = [
   "js/audio.js",
   "js/library.js",
   "js/visualizer.js",
+  "js/player.js",
   "database/frequencies.json",
   "icons/icon.svg",
   "manifest.webmanifest",

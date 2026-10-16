@@ -1,11 +1,21 @@
 /**
- * Oscilloscope drawn from the engine's AnalyserNode. Draws a flat line when idle and
- * pauses the animation loop while the tab is hidden (requestAnimationFrame does that for us).
+ * Oscilloscope. Playback now goes through an <audio> element (see player.js), and routing that
+ * back into Web Audio to analyse it would bring back the iOS background suspension we avoid.
+ * So the wave is computed from what is playing: the same frequencies, waveform and breathing
+ * swell, advanced by the element's clock. requestAnimationFrame pauses while the tab is hidden.
  */
 
-export function startVisualizer(canvas, engine) {
+const SHAPES = {
+  sine: (phase) => Math.sin(2 * Math.PI * phase),
+  triangle: (phase) => 1 - 4 * Math.abs(Math.round(phase - 0.25) - (phase - 0.25)),
+  square: (phase) => (phase % 1 < 0.5 ? 1 : -1),
+  sawtooth: (phase) => 2 * (phase - Math.floor(phase + 0.5)),
+};
+const POINTS = 400;
+const CYCLES_SHOWN = 6;
+
+export function startVisualizer(canvas, player) {
   const context = canvas.getContext("2d");
-  let samples = new Float32Array(2048);
 
   function resize() {
     const ratio = window.devicePixelRatio || 1;
@@ -26,24 +36,25 @@ export function startVisualizer(canvas, engine) {
     context.lineTo(width, height / 2);
     context.stroke();
 
-    if (engine.analyser && engine.isPlaying) {
-      if (samples.length !== engine.analyser.fftSize) samples = new Float32Array(engine.analyser.fftSize);
-      engine.analyser.getFloatTimeDomainData(samples);
-
+    const frequencies = player.currentFrequencies;
+    if (player.isPlaying && !player.audio.paused && frequencies.length) {
+      const shape = SHAPES[player.settings.waveform] || SHAPES.sine;
+      const start = player.time;
       // Show about six cycles of the lowest tone so both 95 Hz and 10 kHz read as waves.
-      const lowest = Math.min(...(engine.currentFrequencies || [440]));
-      const visible = Math.round(Math.min(samples.length, Math.max(48, (engine.context.sampleRate * 6) / lowest)));
-      const gain = 0.9; // the analyser taps the tone bus, before the volume control
+      const span = CYCLES_SHOWN / Math.min(...frequencies);
+      const swell = player.settings.breathing ? 0.7 + 0.3 * Math.sin(2 * Math.PI * 0.1 * start) : 1;
 
       context.strokeStyle = style.getPropertyValue("--wave").trim();
       context.lineWidth = 2 * (window.devicePixelRatio || 1);
       context.lineJoin = "round";
       context.beginPath();
-      for (let i = 0; i < visible; i++) {
-        const x = (i / (visible - 1)) * width;
-        const y = height / 2 - samples[i] * gain * (height / 2) * 0.9;
-        if (i === 0) context.moveTo(x, y);
-        else context.lineTo(x, y);
+      for (let i = 0; i < POINTS; i++) {
+        const t = start + (i / (POINTS - 1)) * span;
+        let sample = 0;
+        for (const f of frequencies) sample += shape(f * t);
+        const y = height / 2 - (sample / frequencies.length) * swell * (height / 2) * 0.8;
+        if (i === 0) context.moveTo((i / (POINTS - 1)) * width, y);
+        else context.lineTo((i / (POINTS - 1)) * width, y);
       }
       context.stroke();
     }

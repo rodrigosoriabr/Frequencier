@@ -6,7 +6,7 @@
 
 ## Rodrigo
 - Decidir merge e GitHub Pages.
-- Testar no iPhone: som com a tela bloqueada, cada ambiente (soa natural?), sessões longas no carregador.
+- Testar no iPhone: som com a tela BLOQUEADA (player novo), cada ambiente (soa natural?), sessões longas no carregador.
 
 ## Claude
-- Se o iPhone pausar o áudio com a tela bloqueada: avaliar fallback com elemento `<audio>` (MediaStream do AudioContext) para manter tocando em segundo plano.
+- Se o iPhone ainda pausar com a tela bloqueada (player `<audio>` já implementado em 16/10): considerar app nativo ou Capacitor.

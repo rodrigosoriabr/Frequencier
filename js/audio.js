@@ -260,15 +260,17 @@ function createImpulseResponse(context, seconds, decay) {
 
 /**
  * Loopable noise buffer. "pink" falls off 3 dB/octave (rain, hiss), "brown" 6 dB/octave (surf, rumble).
- * Ten seconds is long enough that the loop point is not noticeable.
+ * Ten seconds, so it repeats a whole number of times in both the 20 s and 100 s player loops.
  */
 function createNoiseBuffer(context, colour, seconds = 10) {
   const length = Math.floor(context.sampleRate * seconds);
+  const blend = Math.floor(context.sampleRate * 0.5);
   const buffer = context.createBuffer(2, length, context.sampleRate);
   for (let channel = 0; channel < 2; channel++) {
-    const data = buffer.getChannelData(channel);
+    const output = buffer.getChannelData(channel);
+    const data = new Float32Array(length + blend);
     let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, last = 0;
-    for (let i = 0; i < length; i++) {
+    for (let i = 0; i < length + blend; i++) {
       const white = Math.random() * 2 - 1;
       if (colour === "brown") {
         last = (last + 0.02 * white) / 1.02;
@@ -286,6 +288,13 @@ function createNoiseBuffer(context, colour, seconds = 10) {
       } else {
         data[i] = white;
       }
+    }
+    // Generate half a second extra and fade it into the start, so the loop point has no step
+    // (brown noise drifts, and a jump from its last sample back to its first is an audible click).
+    output.set(data.subarray(0, length));
+    for (let i = 0; i < blend; i++) {
+      const t = i / blend;
+      output[i] = data[i] * Math.sqrt(t) + data[length + i] * Math.sqrt(1 - t);
     }
   }
   return buffer;
@@ -340,9 +349,9 @@ const AMBIENCE_BUILDERS = {
     const level = context.createGain();
     level.gain.value = 3;
     noise.connect(lowpass).connect(swell).connect(level).connect(output);
-    // Waves: volume and brightness rise and fall together, roughly every 8 seconds.
-    const volumeWave = lfo(context, 0.12, 0.45, swell.gain);
-    const brightnessWave = lfo(context, 0.12, 400, lowpass.frequency);
+    // Waves: volume and brightness rise and fall together every 10 seconds.
+    const volumeWave = lfo(context, 0.1, 0.45, swell.gain);
+    const brightnessWave = lfo(context, 0.1, 400, lowpass.frequency);
     return [noise, volumeWave, brightnessWave];
   },
 
@@ -353,28 +362,28 @@ const AMBIENCE_BUILDERS = {
     level.gain.value = 5;
     noise.connect(bandpass).connect(level).connect(output);
     // Two unrelated slow sweeps so the gusts never repeat in an obvious pattern.
-    const gust = lfo(context, 0.07, 300, bandpass.frequency);
-    const eddy = lfo(context, 0.19, 120, bandpass.frequency);
-    const surge = lfo(context, 0.05, 1.8, level.gain);
+    const gust = lfo(context, 0.05, 300, bandpass.frequency);
+    const eddy = lfo(context, 0.15, 120, bandpass.frequency);
+    const surge = lfo(context, 0.1, 1.8, level.gain);
     return [noise, gust, eddy, surge];
   },
 
   drone(context, output) {
-    // A soft open fifth on A (55 / 82.5 / 110 Hz), slightly detuned so it shimmers.
+    // A soft open fifth on A (55 / 82.5 / 110 Hz), slightly detuned so it shimmers. The detuned
+    // pitches are written out as multiples of 0.05 Hz (not cents) so the player's 20 s loop closes.
     const lowpass = filter(context, "lowpass", 400);
     const level = context.createGain();
     level.gain.value = 0.5;
     lowpass.connect(level).connect(output);
     const sources = [];
-    for (const [frequency, detune] of [[55, -4], [82.5, 3], [110, 5], [110, -6]]) {
+    for (const frequency of [54.9, 82.6, 110.15, 109.8]) {
       const oscillator = context.createOscillator();
       oscillator.type = "triangle";
       oscillator.frequency.value = frequency;
-      oscillator.detune.value = detune;
       oscillator.connect(lowpass);
       sources.push(oscillator);
     }
-    sources.push(lfo(context, 0.03, 150, lowpass.frequency));
+    sources.push(lfo(context, 0.05, 150, lowpass.frequency));
     return sources;
   },
 };

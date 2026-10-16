@@ -3,7 +3,8 @@
  * No framework: the list is re-rendered from state whenever the filter or search changes.
  */
 
-import { AMBIENCES, ToneEngine } from "./audio.js";
+import { AMBIENCES } from "./audio.js";
+import { LoopPlayer, MAX_FREQUENCY } from "./player.js";
 import { startVisualizer } from "./visualizer.js";
 import {
   SOURCES,
@@ -20,7 +21,7 @@ const SETTINGS_KEY = "frequencier.settings";
 const TICK_MS = 250;
 
 const $ = (selector) => document.querySelector(selector);
-const engine = new ToneEngine();
+const player = new LoopPlayer();
 
 const state = {
   library: [], // [{id, name, frequencies, source}]
@@ -88,13 +89,25 @@ function applySettingsToControls() {
   $("#breathingToggle").checked = settings.breathing;
   renderAmbienceChips();
 
-  engine.setVolume(volumeToGain(settings.volume));
-  engine.waveform = settings.waveform;
-  engine.binauralOffset = Number(settings.binaural);
-  engine.ambience = settings.ambience;
-  engine.ambienceLevel = volumeToGain(settings.ambienceLevel);
-  engine.reverb = settings.reverb / 100;
-  engine.breathing = settings.breathing;
+  player.settings = soundSettings();
+}
+
+/** The settings that change the rendered audio (everything else is UI or session timing). */
+function soundSettings() {
+  const { settings } = state;
+  return {
+    volume: volumeToGain(settings.volume),
+    waveform: settings.waveform,
+    binauralOffset: Number(settings.binaural),
+    ambience: settings.ambience,
+    ambienceLevel: volumeToGain(settings.ambienceLevel),
+    reverb: settings.reverb / 100,
+    breathing: settings.breathing,
+  };
+}
+
+function soundSettingsChanged() {
+  player.updateSettings(soundSettings());
 }
 
 function renderAmbienceChips() {
@@ -247,7 +260,7 @@ function select(item, { autoplay = false, scroll = false } = {}) {
 }
 
 function playableFrequencies() {
-  return (state.current?.frequencies || []).filter((f) => f <= engine.maxFrequency);
+  return (state.current?.frequencies || []).filter((f) => f <= MAX_FREQUENCY);
 }
 
 function start() {
@@ -257,7 +270,8 @@ function start() {
     return;
   }
 
-  const now = performance.now();
+  player.prime(); // must happen inside the tap, before any await
+  const now = Date.now();
   state.playing = true;
   state.sessionStartedAt = now;
   state.stepStartedAt = now;
@@ -275,12 +289,15 @@ function start() {
 function playCurrentStep() {
   const frequencies = playableFrequencies();
   const sequence = state.settings.mode === "sequence" && frequencies.length > 1;
-  engine.play(sequence ? [frequencies[state.stepIndex]] : frequencies);
+  player.play(sequence ? [frequencies[state.stepIndex]] : frequencies);
   renderNowPlaying();
+  // Render the other steps now, while the page is in the foreground, so step changes on a
+  // locked phone are only a source swap.
+  if (sequence) player.prerender(frequencies.map((f) => [f]));
 }
 
 function stop(message) {
-  engine.stop();
+  player.stop();
   state.playing = false;
   state.stepIndex = 0;
   releaseWakeLock();
@@ -304,7 +321,7 @@ function skip(direction) {
   if (state.playing && isSequencing()) {
     const count = playableFrequencies().length;
     state.stepIndex = (state.stepIndex + direction + count) % count;
-    state.stepStartedAt = performance.now();
+    state.stepStartedAt = Date.now();
     playCurrentStep();
     return;
   }
@@ -320,7 +337,7 @@ function moveSelection(direction) {
 
 function tick() {
   if (!state.playing) return;
-  const now = performance.now();
+  const now = Date.now();
   const elapsed = (now - state.sessionStartedAt) / 1000;
   const timerSeconds = state.settings.timerMinutes * 60;
 
@@ -366,7 +383,9 @@ function renderNowPlaying() {
   const playable = playableFrequencies();
   const sequencing = isSequencing();
   $("#nowTitle").textContent = item.name;
-  $("#nowStatus").textContent = state.playing
+  $("#nowStatus").textContent = state.playing && player.audio.paused
+    ? "Preparing sound…"
+    : state.playing
     ? sequencing
       ? `Playing · step ${state.stepIndex + 1} of ${playable.length}`
       : `Playing · ${playable.length} tone${playable.length > 1 ? "s" : ""} together`
@@ -383,7 +402,7 @@ function renderNowPlaying() {
     .map((frequency) => {
       const index = playable.indexOf(frequency);
       const active = state.playing && (!sequencing || index === state.stepIndex) && index >= 0;
-      const note = frequency > engine.maxFrequency ? "above your device's range" : frequency < 20 ? "below hearing range" : "";
+      const note = frequency > MAX_FREQUENCY ? "above your device's range" : frequency < 20 ? "below hearing range" : "";
       return `<li class="step" data-active="${active}" ${note ? `data-note="${note}" title="${note}"` : ""}>${formatHz(frequency)}</li>`;
     })
     .join("");
@@ -618,7 +637,7 @@ function bindEvents() {
     button.addEventListener("click", () => {
       state.settings.mode = button.dataset.mode;
       state.stepIndex = 0;
-      state.stepStartedAt = performance.now();
+      state.stepStartedAt = Date.now();
       applySettingsToControls();
       writeSettings();
       if (state.playing) playCurrentStep();
@@ -635,17 +654,16 @@ function bindEvents() {
   onSetting("#stepSelect", "stepSeconds");
   onSetting("#timerSelect", "timerMinutes", Number, () => {
     // Restart the clock so a newly chosen timer counts from now.
-    state.sessionStartedAt = performance.now();
+    state.sessionStartedAt = Date.now();
     renderNowPlaying();
   });
-  onSetting("#waveSelect", "waveform", String, () => engine.setWaveform(state.settings.waveform));
+  onSetting("#waveSelect", "waveform", String, soundSettingsChanged);
   onSetting("#binauralSelect", "binaural", Number, () => {
-    engine.binauralOffset = state.settings.binaural;
-    if (state.playing) playCurrentStep();
+    soundSettingsChanged();
   });
   onSetting("#volumeRange", "volume", Number, () => {
     $("#volumeOutput").textContent = `${state.settings.volume}%`;
-    engine.setVolume(volumeToGain(state.settings.volume));
+    soundSettingsChanged();
   });
 
   $("#ambienceChips").addEventListener("click", (event) => {
@@ -654,20 +672,20 @@ function bindEvents() {
     state.settings.ambience = chip.dataset.ambience;
     writeSettings();
     renderAmbienceChips();
-    engine.setAmbience(state.settings.ambience);
+    soundSettingsChanged();
   });
   onSetting("#ambienceRange", "ambienceLevel", Number, () => {
     $("#ambienceOutput").textContent = `${state.settings.ambienceLevel}%`;
-    engine.setAmbienceLevel(volumeToGain(state.settings.ambienceLevel));
+    soundSettingsChanged();
   });
   onSetting("#reverbRange", "reverb", Number, () => {
     $("#reverbOutput").textContent = `${state.settings.reverb}%`;
-    engine.setReverb(state.settings.reverb / 100);
+    soundSettingsChanged();
   });
   $("#breathingToggle").addEventListener("change", (event) => {
     state.settings.breathing = event.target.checked;
     writeSettings();
-    engine.setBreathing(state.settings.breathing);
+    soundSettingsChanged();
   });
 
   $("#themeButton").addEventListener("click", toggleTheme);
@@ -717,8 +735,19 @@ async function main() {
   applySettingsToControls();
   bindEvents();
   setUpMiniPlayer();
-  startVisualizer($("#scope"), engine);
+  startVisualizer($("#scope"), player);
   setInterval(tick, TICK_MS);
+  // Timers are throttled or frozen on a locked phone; the <audio> element keeps firing
+  // timeupdate while it plays, so the session clock and step changes still run.
+  player.audio.addEventListener("timeupdate", tick);
+  player.audio.addEventListener("playing", renderNowPlaying);
+  player.onerror = (error) => {
+    if (error?.name === "AbortError") return; // a newer source replaced this one
+    stop(`Couldn't play: ${error?.message || error}`);
+  };
+  player.onsettingschange = () => {
+    if (state.playing && isSequencing()) player.prerender(playableFrequencies().map((f) => [f]));
+  };
 
   try {
     const entries = await loadDatabase();
