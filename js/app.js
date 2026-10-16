@@ -383,9 +383,7 @@ function renderNowPlaying() {
   const playable = playableFrequencies();
   const sequencing = isSequencing();
   $("#nowTitle").textContent = item.name;
-  $("#nowStatus").textContent = state.playing && player.audio.paused
-    ? "Preparing sound…"
-    : state.playing
+  $("#nowStatus").textContent = state.playing
     ? sequencing
       ? `Playing · step ${state.stepIndex + 1} of ${playable.length}`
       : `Playing · ${playable.length} tone${playable.length > 1 ? "s" : ""} together`

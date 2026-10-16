@@ -52,7 +52,7 @@ Sources: `CAFL` (Consolidated Annotated Frequency List), `XTRA`, `KHZ`, `BIO`, `
 
 ## Notes on audio
 
-- Playback is a pre-rendered loop played by an `<audio>` element, because iOS suspends live Web Audio when the screen locks. Loops are 20 s (100 s if a frequency has hundredths of a Hz) and every tone and modulation completes whole cycles in that time, so the loop point is seamless. Changing a setting re-renders the loop in about half a second.
+- In the foreground sound comes from live Web Audio (gapless). On touch devices, when the page is hidden or the screen locks, playback hands over to a pre-rendered loop in an `<audio>` element, because iOS suspends live Web Audio in the background. Media elements leave a short gap at each loop point, which is why that path is used only while hidden. Loops are 20 s (100 s if a frequency has hundredths of a Hz) and every tone and modulation completes whole cycles in that time, so the loop point is seamless. Changing a setting re-renders the loop in about half a second.
 
 - Each voice is scaled by `1/n` and the master runs through a compressor, so large chords don't clip.
 - Frequencies above the device's Nyquist limit (usually 22–24 kHz) are skipped with a notice. Tones under 20 Hz or above ~16 kHz may be inaudible on phone and laptop speakers.

@@ -1,7 +1,6 @@
 /**
- * Oscilloscope. Playback now goes through an <audio> element (see player.js), and routing that
- * back into Web Audio to analyse it would bring back the iOS background suspension we avoid.
- * So the wave is computed from what is playing: the same frequencies, waveform and breathing
+ * Oscilloscope. Sound can come from live Web Audio or from an <audio> loop (see player.js), so
+ * instead of tapping either one the wave is computed from what is playing: the same frequencies, waveform and breathing
  * swell, advanced by the element's clock. requestAnimationFrame pauses while the tab is hidden.
  */
 
@@ -37,7 +36,7 @@ export function startVisualizer(canvas, player) {
     context.stroke();
 
     const frequencies = player.currentFrequencies;
-    if (player.isPlaying && !player.audio.paused && frequencies.length) {
+    if (player.isPlaying && frequencies.length) {
       const shape = SHAPES[player.settings.waveform] || SHAPES.sine;
       const start = player.time;
       // Show about six cycles of the lowest tone so both 95 Hz and 10 kHz read as waves.

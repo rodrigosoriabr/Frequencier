@@ -1,10 +1,14 @@
 /**
- * Background-safe playback.
+ * Background-safe playback, gapless in the foreground.
  *
- * iOS suspends Web Audio when the screen locks or the tab goes to the background, but it keeps
- * an <audio> element playing (that is how web music players survive the lock screen). So we use
- * Web Audio only as an offline renderer: the ToneEngine graph renders a short loop into a WAV,
- * and a plain <audio loop> element plays it.
+ * Two ways to make sound, and we hand over between them:
+ * - Foreground: the live ToneEngine (Web Audio). Gapless, instant setting changes, real fades.
+ * - Phone screen locked / tab hidden: iOS suspends Web Audio but keeps an <audio> element playing
+ *   (that is how web music players survive the lock screen). So the same ToneEngine graph renders
+ *   a loop offline into a WAV and a plain <audio loop> element plays it.
+ * Media elements are not sample-accurate at the loop point (a short cut every lap, very audible in
+ * Chrome), which is why the <audio> path is only used while hidden, and only on touch devices:
+ * desktop browsers keep Web Audio running in background tabs.
  *
  * Seamless loops: every tone and every slow modulation completes a whole number of cycles in
  * the loop length, and the render starts with a warm-up (reverb tail, fades, limiter) that is
@@ -15,6 +19,8 @@
  */
 
 import { ToneEngine } from "./audio.js";
+
+const HAND_OVER_IN_BACKGROUND = matchMedia("(pointer: coarse)").matches;
 
 export const SAMPLE_RATE = 44100;
 export const MAX_FREQUENCY = SAMPLE_RATE / 2 - 1;
@@ -95,6 +101,7 @@ function silentWavUrl() {
 
 export class LoopPlayer {
   constructor() {
+    this.engine = new ToneEngine();
     this.audio = new Audio();
     this.audio.loop = true;
     this.audio.preload = "auto";
@@ -103,29 +110,36 @@ export class LoopPlayer {
     this.settings = {};
     this.currentFrequencies = [];
     this.playing = false;
+    this.mode = "live"; // "live" (Web Audio) or "media" (<audio> loop)
+    this.liveStartedAt = 0;
     this.request = 0;
     this.silentUrl = silentWavUrl();
     this.onerror = null;
+    document.addEventListener("visibilitychange", () => this.onVisibilityChange());
   }
 
   get isPlaying() {
     return this.playing;
   }
 
-  /** Seconds into the loop, for the oscilloscope. */
+  /** Seconds since the current tones started, for the oscilloscope. */
   get time() {
-    return this.audio.currentTime || 0;
+    if (this.mode === "media") return this.audio.currentTime || 0;
+    return this.engine.context ? this.engine.context.currentTime - this.liveStartedAt : 0;
   }
 
   /**
-   * Must run synchronously inside the tap/click. Rendering is async and iOS only lets an
-   * element start playing during a user gesture; once it has played, later play() calls
-   * (next step, settings change) are allowed even from the background.
+   * Must run synchronously inside the tap/click. It resumes the AudioContext and starts the
+   * <audio> element on a silent loop: iOS only lets media start during a user gesture, and an
+   * element that is already playing may later switch source from the background. The silent
+   * element also puts iOS in "playback" mode, so Web Audio is heard even with the mute switch on.
    */
   prime() {
-    if (!this.audio.paused) return;
-    this.audio.src = this.silentUrl;
-    this.audio.play().catch(() => {});
+    this.engine.ensureContext();
+    if (this.audio.paused) {
+      this.audio.src = this.silentUrl;
+      this.audio.play().catch(() => {});
+    }
   }
 
   keyFor(frequencies) {
@@ -151,8 +165,9 @@ export class LoopPlayer {
     }
   }
 
-  /** Renders ahead so a step change in the background is just a source swap. */
+  /** Renders ahead so a step change on a locked phone is just a source swap. */
   async prerender(list) {
+    if (!HAND_OVER_IN_BACKGROUND) return;
     for (const frequencies of list) {
       try {
         await this.render(frequencies);
@@ -160,12 +175,31 @@ export class LoopPlayer {
     }
   }
 
-  async play(frequencies, { keepPosition = false } = {}) {
-    const request = ++this.request;
+  play(frequencies) {
+    this.request++;
     this.playing = true;
     this.currentFrequencies = frequencies;
-    const position = this.audio.currentTime;
+    if (this.mode === "media") return this.playMedia(frequencies, 0);
+    this.playLive(frequencies);
+    if (HAND_OVER_IN_BACKGROUND) this.render(frequencies).catch(() => {}); // ready for when the screen locks
+  }
 
+  playLive(frequencies) {
+    const engine = this.engine;
+    engine.ensureContext();
+    engine.setVolume(this.settings.volume);
+    engine.setWaveform(this.settings.waveform);
+    engine.setReverb(this.settings.reverb);
+    engine.setBreathing(this.settings.breathing);
+    engine.binauralOffset = this.settings.binauralOffset;
+    engine.ambience = this.settings.ambience;
+    engine.ambienceLevel = this.settings.ambienceLevel;
+    engine.play(frequencies);
+    this.liveStartedAt = engine.context.currentTime;
+  }
+
+  async playMedia(frequencies, position) {
+    const request = this.request;
     let url;
     try {
       url = await this.render(frequencies);
@@ -175,14 +209,11 @@ export class LoopPlayer {
     }
     if (request !== this.request) return; // a newer play/stop happened while rendering
 
-    if (this.audio.src !== url) {
-      this.audio.src = url;
-      if (keepPosition) {
-        // Same loop length and phase origin, so resuming at the same spot keeps the tones continuous.
-        this.audio.addEventListener("loadedmetadata", () => (this.audio.currentTime = position % this.audio.duration), {
-          once: true,
-        });
-      }
+    this.audio.src = url;
+    if (position > 0) {
+      this.audio.addEventListener("loadedmetadata", () => (this.audio.currentTime = position % this.audio.duration), {
+        once: true,
+      });
     }
     this.audio.play().catch((error) => this.onerror?.(error));
   }
@@ -191,19 +222,55 @@ export class LoopPlayer {
     this.request++;
     this.playing = false;
     this.currentFrequencies = [];
+    this.mode = "live";
+    this.engine.stop();
     this.audio.pause();
   }
 
-  /** New sound settings: drop rendered loops and re-render what is playing, in place. */
+  onVisibilityChange() {
+    if (!this.playing || !HAND_OVER_IN_BACKGROUND) return;
+    if (document.hidden && this.mode === "live") {
+      // Start the loop where the live tones are, so the hand-over doesn't jump phase.
+      // The rendered loop begins WARM_UP_SECONDS after its tones started.
+      const position = Math.max(0, this.time - WARM_UP_SECONDS);
+      this.mode = "media";
+      this.request++;
+      this.playMedia(this.currentFrequencies, position).then(() => {
+        if (this.mode === "media") this.engine.stop(); // unless the page came back meanwhile
+      });
+    } else if (!document.hidden && this.mode === "media") {
+      this.mode = "live";
+      this.request++;
+      this.playLive(this.currentFrequencies);
+      this.audio.src = this.silentUrl;
+      this.audio.play().catch(() => {});
+    }
+  }
+
+  /** New sound settings: applied live at once; background loops are re-rendered for later. */
   updateSettings(patch) {
+    const before = { ...this.settings };
     Object.assign(this.settings, patch);
+    const settings = this.settings;
+
+    if (this.playing && this.mode === "live") {
+      const engine = this.engine;
+      engine.setVolume(settings.volume);
+      engine.setWaveform(settings.waveform);
+      engine.setReverb(settings.reverb);
+      engine.setBreathing(settings.breathing);
+      engine.setAmbienceLevel(settings.ambienceLevel);
+      if (settings.ambience !== before.ambience) engine.setAmbience(settings.ambience);
+      if (settings.binauralOffset !== before.binauralOffset) engine.setBinauralOffset(settings.binauralOffset);
+    }
+
     clearTimeout(this.rerenderTimer);
-    if (!this.playing) return;
+    if (!this.playing || !HAND_OVER_IN_BACKGROUND) return;
     // Debounced so dragging a slider doesn't render dozens of loops.
     this.rerenderTimer = setTimeout(() => {
       for (const [, url] of this.cache) url.then((u) => u !== this.audio.src && URL.revokeObjectURL(u)).catch(() => {});
       this.cache.clear();
-      this.play(this.currentFrequencies, { keepPosition: true });
+      this.render(this.currentFrequencies).catch(() => {});
       this.onsettingschange?.();
     }, 350);
   }

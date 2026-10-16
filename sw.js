@@ -3,7 +3,7 @@
  * the cache is only used when the network is unavailable.
  */
 
-const CACHE = "frequencier-v5";
+const CACHE = "frequencier-v6";
 const FILES = [
   "./",
   "index.html",
