@@ -1,97 +1,58 @@
 # Frequencier
 
-Frequencier is a JavaScript-based project dedicated to generating sound frequencies with the proposed benefit of relieving sores and pains. By utilizing specific sound frequencies, Frequencier aims to provide a non-invasive method to alleviate discomfort.
+Play frequency sets in the browser: 439 Rife-style programmes, your own frequencies, sequences, timers and binaural beats. No build step, no dependencies, works offline once loaded.
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Features](#features)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Contributing](#contributing)
-- [License](#license)
-
-## Introduction
-
-Frequencier leverages the power of sound frequencies to potentially offer relief from various types of pain and discomfort. The project utilizes JavaScript to generate specific sound waves that can be played through a web interface, allowing users to experiment with different frequencies to find the most effective ones for their needs.
+> **Not medical advice.** There is no scientific evidence that audio frequencies treat disease. Keep the volume low and see a doctor for anything that worries you.
 
 ## Features
 
-- Generate sound frequencies using JavaScript
-- Simple and intuitive web interface
-- Customizable frequency settings
-- Potential relief for sores and pains through sound therapy
-- Open-source and community-driven
+- **Library** of 439 sets with instant search (by name or by Hz), filters by source, and ★ favourites.
+- **Two play modes**: all frequencies together, or one at a time (30 s – 5 min each, looping) the way Rife programmes are usually run.
+- **Session timer** that fades out on its own (5 min – 1 h, or never).
+- **Waveform** (sine, triangle, square, sawtooth) and **binaural beat** offset (delta, theta, Schumann, alpha — use headphones).
+- **Your own frequencies**: type `396, 528, 852`, play, save as a preset, or share a link (`#f=396,528,852`, `#set=Abdominal Pain`).
+- **Live oscilloscope**, lock-screen controls (Media Session), screen kept awake during a session, light and dark themes, keyboard shortcuts (`Space`, `↑ ↓`, `← →`, `/`, `F`).
+- **Installable PWA** that works offline.
 
-## Installation
+## Run locally
 
-To get started with Frequencier, follow these steps:
+Any static server works; the app uses ES modules, so opening the file directly with `file://` will not.
 
-1. **Clone the repository:**
-    ```bash
-    git clone https://github.com/rodrigosoriabr/Frequencier.git
-    ```
+```bash
+git clone https://github.com/rodrigosoriabr/Frequencier.git
+cd Frequencier
+python3 -m http.server 8000
+# open http://localhost:8000
+```
 
-2. **Navigate to the project directory:**
-    ```bash
-    cd Frequencier
-    ```
+## Project layout
 
-3. **Install dependencies:**
-    ```bash
-    npm install
-    ```
+| Path | What it does |
+| --- | --- |
+| `index.html` | Page structure |
+| `css/app.css` | All styles; colour tokens at the top, dark and light themes |
+| `js/app.js` | UI state, list rendering, player logic, keyboard, sharing |
+| `js/audio.js` | Tone engine: one AudioContext, gain-scaled voices, click-free fades, limiter |
+| `js/library.js` | Database loading, favourites/presets storage, frequency parsing |
+| `js/visualizer.js` | Oscilloscope canvas |
+| `sw.js` | Offline cache (network first) |
+| `database/frequencies.json` | The library: `{ name, frequencies[], source }` |
 
-## Usage
+## Adding frequencies
 
-To start using Frequencier, follow these steps:
+Append to `database/frequencies.json`:
 
-1. **Run the application:**
-    ```bash
-    npm start
-    ```
+```json
+{ "name": "Example", "frequencies": [396, 528], "source": "CUST" }
+```
 
-2. **Open your browser and navigate to:**
-    ```
-    http://localhost:3000
-    ```
+Sources: `CAFL` (Consolidated Annotated Frequency List), `XTRA`, `KHZ`, `BIO`, `VEGA`, `CUST`, `PROV`, `ODD` — descriptions live in `js/library.js`.
 
-3. **Use the web interface to generate sound frequencies:**
-    - Adjust the frequency settings to your desired level.
-    - Click the play button to start the sound.
-    - Experiment with different frequencies to find the ones that work best for you.
+## Notes on audio
 
-## Contributing
-
-Contributions are welcome! If you'd like to contribute to Frequencier, please follow these steps:
-
-1. **Fork the repository.**
-
-2. **Create a new branch:**
-    ```bash
-    git checkout -b my-feature-branch
-    ```
-
-3. **Make your changes and commit them:**
-    ```bash
-    git commit -m "Add new feature"
-    ```
-
-4. **Push to the branch:**
-    ```bash
-    git push origin my-feature-branch
-    ```
-
-5. **Create a pull request.**
-
-Please ensure your code adheres to the project's coding standards and includes appropriate tests.
+- Each voice is scaled by `1/n` and the master runs through a compressor, so large chords don't clip.
+- Frequencies above the device's Nyquist limit (usually 22–24 kHz) are skipped with a notice. Tones under 20 Hz or above ~16 kHz may be inaudible on phone and laptop speakers.
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
----
-
-**Disclaimer:** The effectiveness of sound frequencies for pain relief is not scientifically guaranteed. Users should consult with a healthcare provider for medical advice.
-
-Feel free to open an issue if you have any questions or suggestions!
+MIT.

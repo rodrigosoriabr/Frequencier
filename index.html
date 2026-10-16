@@ -1,65 +1,191 @@
-<!DOCTYPE html>
-<html>
-
+<!doctype html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <meta name="viewport" content="initial-scale=1">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="stylesheet" href="/css/bootstrap.min.css">
-    <link rel="stylesheet" href="/css/jquery.dataTables.min.css">
-    <link rel="stylesheet" href="/css/responsive.dataTables.min.css">
-    <link rel="stylesheet" href="/css/main.min.css">
-    <link rel="stylesheet" href="/font/bootstrap-icons.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Frequencier</title>
+  <meta name="description" content="Play frequency sets in your browser: 439 Rife-style programmes, sequences, timers, binaural mode and your own presets. Works offline.">
+  <meta name="theme-color" content="#0b1020">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="css/app.css">
+  <script type="module" src="js/app.js"></script>
 </head>
-<title>Frequencier</title>
-
 <body>
-    <div class="container-fluid p-3 text-white text-center bg-navy">
-        <i class="bi bi-activity" style="font-size: 4em"></i>
-        <h1>Frequencier</h1>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Frequencier home">
+      <img src="icons/icon.svg" alt="" width="32" height="32">
+      <span>Frequencier</span>
+    </a>
+    <div class="topbar-actions">
+      <button class="icon-button" id="helpButton" type="button" aria-label="Help and keyboard shortcuts" title="Help">?</button>
+      <button class="icon-button" id="themeButton" type="button" aria-label="Switch colour theme" title="Theme">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>
+      </button>
     </div>
-    <div class="container-fluid mt-2">
-        <div class="row">
-            <div class="col-md-12">
-                <label for="frequencies" class="col-form-label" style="font-weight: bold;">Frequencies</label>
-            </div>
-            <div class="col-md-12">
-                <input class="form-control frequency-input" type="text" id="frequencies"
-                    placeholder="Ex:. 220,400,440,1500" aria-label="Ex:. 220,400,440,1500" onkeyup="enablePlay(event);">
-            </div>
-        </div>
-        <div class="row">
-            <div id="buttons" class="col-md-12 mt-3 mb-3 text-center">
-                <button id="play" type="button" class="btn btn-success" onclick="play();">Play</button>
-                <button id="stop" type="button" class="btn btn-danger" onclick="stop();removeSelected();">Stop</button>
-            </div>
-        </div>
-        <div class="row mb-5">
-            <table id="frequenciesTable" class="display nowrap" style="width:100%;">
-                <thead>
-                    <tr>
-                        <th></th>
-                        <th>Name</th>
-                        <th>Frequency</th>
-                        <th>Author</th>
-                    </tr>
-                </thead>
-            </table>
-        </div>
-        <div class="footer">
-            <p>© <span id="currentYear"></span> Frequencier, Inc. All rights reserved.</p>
-        </div>
-    </div>
-    <script src="/js/jquery-3.5.1.min.js"></script>
-    <script src="/js/jquery.dataTables.min.js"></script>
-    <script src="/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/dataTables.keyTable.min.js"></script>
-    <script src="/js/dataTables.responsive.min.js"></script>
-    <script src="/js/frequencies.min.js"></script>
-    <script src="/js/main.min.js"></script>
-</body>
+  </header>
 
+  <main class="layout">
+    <section class="card player" aria-label="Player">
+      <div class="now">
+        <p class="eyebrow" id="nowStatus">Ready</p>
+        <h1 id="nowTitle">Pick a frequency set</h1>
+        <p class="now-hz" id="nowHz" aria-live="polite">— Hz</p>
+        <ol class="steps" id="steps" aria-label="Frequencies in this set"></ol>
+      </div>
+
+      <canvas class="scope" id="scope" aria-hidden="true"></canvas>
+
+      <div class="progress" aria-hidden="true"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="times"><span id="elapsed">0:00</span><span id="remaining"></span></div>
+
+      <div class="transport">
+        <button class="icon-button large" id="previousButton" type="button" aria-label="Previous">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>
+        </button>
+        <button class="play-button" id="playButton" type="button" aria-label="Play" disabled>
+          <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>
+          <svg class="icon-stop" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h12v12H6z"/></svg>
+        </button>
+        <button class="icon-button large" id="nextButton" type="button" aria-label="Next">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg>
+        </button>
+      </div>
+
+      <details class="more" id="settingsPanel">
+        <summary>Session settings</summary>
+      <div class="settings">
+        <div class="field wide">
+          <span class="label" id="modeLabel">Mode</span>
+          <div class="segmented" role="radiogroup" aria-labelledby="modeLabel">
+            <button type="button" role="radio" data-mode="together" aria-checked="true">All together</button>
+            <button type="button" role="radio" data-mode="sequence" aria-checked="false">One at a time</button>
+          </div>
+        </div>
+        <label class="field" id="stepField">
+          <span class="label">Each frequency</span>
+          <select id="stepSelect">
+            <option value="30">30 seconds</option>
+            <option value="60">1 minute</option>
+            <option value="120">2 minutes</option>
+            <option value="180" selected>3 minutes</option>
+            <option value="300">5 minutes</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="label">Stop after</span>
+          <select id="timerSelect">
+            <option value="0">Never</option>
+            <option value="5">5 minutes</option>
+            <option value="10">10 minutes</option>
+            <option value="15" selected>15 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="60">1 hour</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="label">Waveform</span>
+          <select id="waveSelect">
+            <option value="sine">Sine (smooth)</option>
+            <option value="triangle">Triangle</option>
+            <option value="square">Square</option>
+            <option value="sawtooth">Sawtooth</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="label">Binaural beat</span>
+          <select id="binauralSelect">
+            <option value="0">Off</option>
+            <option value="2">2 Hz · delta</option>
+            <option value="6">6 Hz · theta</option>
+            <option value="7.83">7.83 Hz · Schumann</option>
+            <option value="10">10 Hz · alpha</option>
+          </select>
+        </label>
+        <label class="field wide">
+          <span class="label">Volume <output id="volumeOutput">35%</output></span>
+          <input type="range" id="volumeRange" min="0" max="100" value="35">
+        </label>
+      </div>
+
+      <form class="custom" id="customForm" autocomplete="off">
+        <label class="label" for="customInput">Your own frequencies</label>
+        <div class="custom-row">
+          <input id="customInput" inputmode="decimal" placeholder="e.g. 396, 528, 852" aria-describedby="customHint">
+          <button class="button primary" type="submit">Play</button>
+        </div>
+        <p class="hint" id="customHint">Separate with commas or spaces.</p>
+        <div class="custom-actions">
+          <button class="button" type="button" id="savePresetButton">Save as preset</button>
+          <button class="button" type="button" id="shareButton">Share link</button>
+        </div>
+      </form>
+      </details>
+    </section>
+
+    <section class="card library" aria-label="Frequency library">
+      <div class="library-head">
+        <h2>Library <span class="count" id="resultCount"></span></h2>
+        <div class="search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4a6 6 0 1 0 3.9 10.6l4.8 4.8 1.4-1.4-4.8-4.8A6 6 0 0 0 10 4zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"/></svg>
+          <input type="search" id="searchInput" placeholder="Search conditions or Hz…" aria-label="Search the library">
+          <kbd>/</kbd>
+        </div>
+        <div class="chips" id="filterChips" aria-label="Filter"></div>
+      </div>
+      <ul class="list" id="list" role="listbox" aria-label="Frequency sets"></ul>
+      <p class="empty" id="emptyState" hidden></p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p><strong>Not medical advice.</strong> There is no scientific evidence that audio frequencies treat disease. Use this for relaxation and curiosity, keep the volume low, and see a doctor for anything that worries you.</p>
+    <p>© <span id="year"></span> Frequencier · <a href="https://github.com/rodrigosoriabr/Frequencier">Source on GitHub</a></p>
+  </footer>
+
+  <dialog class="dialog" id="presetDialog">
+    <form method="dialog">
+      <h2>Save preset</h2>
+      <label class="field">
+        <span class="label">Name</span>
+        <input id="presetName" maxlength="60" placeholder="e.g. Morning calm">
+      </label>
+      <p class="hint" id="presetPreview"></p>
+      <div class="dialog-actions">
+        <button class="button" value="cancel">Cancel</button>
+        <button class="button primary" value="save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="dialog" id="helpDialog">
+    <form method="dialog">
+      <h2>How it works</h2>
+      <p><strong>All together</strong> plays every frequency of a set at once. <strong>One at a time</strong> walks through them in order, the way Rife-style programmes are usually run, and loops until the timer ends.</p>
+      <p><strong>Binaural beat</strong> plays a slightly higher tone in the right ear. Use headphones.</p>
+      <p>Very low (under 20 Hz) and very high (over 16 kHz) tones may be silent on phone or laptop speakers.</p>
+      <h3>Keyboard</h3>
+      <dl class="shortcuts">
+        <dt><kbd>Space</kbd></dt><dd>Play / stop</dd>
+        <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>Move through the list</dd>
+        <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Previous / next</dd>
+        <dt><kbd>/</kbd></dt><dd>Search</dd>
+        <dt><kbd>F</kbd></dt><dd>Favourite the current set</dd>
+      </dl>
+      <h3>Sources</h3>
+      <dl class="sources" id="sourcesList"></dl>
+      <div class="dialog-actions"><button class="button primary" value="close">Close</button></div>
+    </form>
+  </dialog>
+
+  <div class="mini" id="miniPlayer" aria-hidden="true">
+    <span class="bars"><i></i><i></i><i></i></span>
+    <span class="mini-text"><strong id="miniTitle"></strong><span id="miniHz"></span></span>
+    <button class="button" type="button" id="miniStop" tabindex="-1">Stop</button>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
 </html>
