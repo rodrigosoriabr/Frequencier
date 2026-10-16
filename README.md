@@ -57,3 +57,7 @@ Sources: `CAFL` (Consolidated Annotated Frequency List), `XTRA`, `KHZ`, `BIO`, `
 ## License
 
 MIT.
+
+## Testing on a phone (maintainer)
+
+`tools/local-server/` holds a launchd agent that serves the site over HTTPS on the tailnet. Run `tools/local-server/publish.sh` after changes. See `CLAUDE.md`.
