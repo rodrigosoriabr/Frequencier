@@ -4,7 +4,7 @@
 - [x] ~~Merge `redesign` → `master`~~ — resolvido em 24/10/2026 (fast-forward até `b22015b`).
 
 ## Rodrigo
-- Testar no iPhone: som com a tela BLOQUEADA (player novo), cada ambiente (soa natural?), sessões longas no carregador.
+- [x] ~~Testar no iPhone: som com a tela bloqueada, cada ambiente, sessões longas no carregador~~ — testado por Rodrigo em 24/10/2026: tudo ok.
 
 ## Claude
-- Se o iPhone ainda pausar com a tela bloqueada (player `<audio>` já implementado em 16/10): considerar app nativo ou Capacitor.
+- [x] ~~Avaliar app nativo ou Capacitor~~ — desnecessário: o teste no iPhone passou em 24/10/2026.
