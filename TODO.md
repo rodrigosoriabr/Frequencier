@@ -1,11 +1,9 @@
 # TODO
 
 ## Antes do release
-- Merge `redesign` → `master` (a branch está no GitHub; `master` ainda é a v1 jQuery).
-- Hospedagem pública: ligar GitHub Pages (caminhos já são relativos).
+- [x] ~~Merge `redesign` → `master`~~ — resolvido em 24/10/2026 (fast-forward até `b22015b`).
 
 ## Rodrigo
-- Decidir merge e GitHub Pages.
 - Testar no iPhone: som com a tela BLOQUEADA (player novo), cada ambiente (soa natural?), sessões longas no carregador.
 
 ## Claude
